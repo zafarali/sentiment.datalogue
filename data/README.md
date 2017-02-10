@@ -1,0 +1,1 @@
+Obtain data from http://ai.stanford.edu/~amaas/data/sentiment/ and unzip into this directory.
