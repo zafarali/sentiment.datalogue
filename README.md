@@ -11,14 +11,14 @@ I will be keeping track of my explorations and observations in this README for a
 
 ## Requirements
 
-0. Python 2.7.13 (I know I should be using 3...)
+0. Python 3.4.3
 1. Numpy 1.12.0
 2. Matplotlib 1.4.3
 3. Pandas 0.16.2
-5. nltk 2.0.5
+5. nltk 3.0.3
 4. Scikit-learn 0.16.1
-5. Theano/Tensorflow
-6. Keras 1.2.1
+5. Theano 0.8.2/Tensorflow 1.0.0
+6. Keras 1.2.2
 
 ## Progress
 
@@ -61,9 +61,7 @@ There are two things to take away from this:
 
 #### Dunnings Loglikelihood
 
-In a [previous competition (twitfem)](https://github.com/zafarali/twitfem) we had used the Dunnings Loglikelihood to tell us which words appeared in each corpus not by chance. This might be a useful metric here to remove non-predictive words. Let us explore it.
+In a [previous competition (twitfem)](https://github.com/zafarali/twitfem) we had used the Dunnings Loglikelihood to tell us which words appeared in each corpus not by chance. This might be a useful metric here to remove non-predictive words. Let us explore it. I looked into the literature to try to understand further what this"likelihood" test was doing. 
 
-
-Dunning, Ted. "Accurate methods for the statistics of surprise and coincidence." Computational linguistics 19.1 (1993): 61-74.
-
+Dunning, Ted. ["Accurate methods for the statistics of surprise and coincidence."](http://www.aclweb.org/website/old_anthology/J/J93/J93-1003.pdf) Computational linguistics 19.1 (1993): 61-74.
 
