@@ -59,9 +59,22 @@ There are two things to take away from this:
 1. Our wordly misconceptions about which words would be used most often is wrong.
 2. Using common words / frequencies do not make for good features.
 
-#### Dunnings Loglikelihood
+#### Future: Dunnings Loglikelihood
 
 In a [previous competition (twitfem)](https://github.com/zafarali/twitfem) we had used the Dunnings Loglikelihood to tell us which words appeared in each corpus not by chance. This might be a useful metric here to remove non-predictive words. Let us explore it. I looked into the literature to try to understand further what this"likelihood" test was doing. 
 
 Dunning, Ted. ["Accurate methods for the statistics of surprise and coincidence."](http://www.aclweb.org/website/old_anthology/J/J93/J93-1003.pdf) Computational linguistics 19.1 (1993): 61-74.
+
+### 16/02/2017: (preliminary) Feature Extraction
+
+I used `HashingVectorizer` and `TfidfTransformer` to obtain features for positive and negative reviews. I capped the number of features at 5000 and 10000 to allow for quick prototyping. For each of these I also extract three datasets: bigrams, unigrams and bigrams + unigrams. 
+
+### 17/02/2017: Baseline methods
+
+The `./baseline_analysis.py` script generates train/test results for the different features that were extracted the day before. It's interesting to note that bigram and unigram+bigram features do not seem to capture the sentiments well (as seen from `./RESULTS.md`). This could be due to the cap introduced of 5000 and 10000 features. We can see this difference by comparing the classifiers for 5000 and 10000 features respectively, to see that they perform marginally better in terms of accuracy. There is however, evidence of overfitting to the training set when using bigrams and unigrams+bigrams as the testing accuracies are ≈>10% lower than training. The NaiveBayes classifier was dissapointing and the best performing model is LogisticRegression using TFIDF using a cap of 10000 features.
+
+#### Future:
+
+1. Obtain the GloVe Embeddings for the dataset (this will probably be done when I start creating neural networks) 
+2. Try the LogisticRegression using TFIDF and a larger number of features.
 
