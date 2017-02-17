@@ -6,6 +6,7 @@ from glob import glob
 import pandas as pd
 import numpy as np
 from scipy.sparse import csr_matrix
+from itertools import product
 import os
 
 # a oneliner to create a new folder
@@ -71,3 +72,16 @@ def load_sparse_csr(filename):
     loader = np.load(filename)
     return csr_matrix( ( loader['data'] , loader['indices'] , loader['indptr'] ) ,
         shape = loader['shape'])
+
+
+def generate_folder(root_folder, embeddings=False, folder_titles=True):
+    """
+        Yields the folders that represent all the precomputed features 
+    """
+    if not embeddings:
+        vectorizers = [ 'tfidf' , 'hashing' ]
+        n_features = [ 5000 , 10000 ]
+        n_grams = [ (1,1) , (1,2) , (2,2) ]
+
+        for v, f, n in product(vectorizers, n_features, n_grams):
+            yield root_folder + '/processed/'+v+'_'+str(f)+'_'+str(n[0])+'-'+str(n[1])+'grams/', v + 'n='+str(f) + 'g='+str(n)+')'
