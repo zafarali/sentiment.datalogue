@@ -1,9 +1,7 @@
-from utils import load_data
+from utils import load_data, create_folder
 import os
 
-if not os.path.exists('./processed'):
-    os.makedirs('./processed')
-    print('Created processed folder')
+create_folder('./processed')
 
 for dataset in ['train', 'test']:
 	for sentiment in ['both', 'pos', 'neg']:

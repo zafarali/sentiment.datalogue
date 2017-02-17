@@ -4,6 +4,12 @@
 
 from glob import glob
 import pandas as pd
+import numpy as np
+from scipy.sparse import csr_matrix
+import os
+
+# a oneliner to create a new folder
+create_folder = lambda f: [ os.makedirs('./'+f) if not os.path.exists('./'+f) else False ]
 
 def load_data(dataset='train', lim=12500, sentiments='both', folder_location='./aclImdb'):
     """
@@ -43,5 +49,25 @@ def load_data(dataset='train', lim=12500, sentiments='both', folder_location='./
         return IOError('No data was found')
 
     return pd.DataFrame(data, columns=['record_id', 'text', 'filepath', 'rating', 'is_positive'])
-            
 
+# code from:
+# http://stackoverflow.com/questions/8955448/save-load-scipy-sparse-csr-matrix-in-portable-data-format
+def save_sparse_csr(filename, array):
+    """
+        Save a CSR
+        @params:
+            filename
+            array
+    """
+    np.savez( filename , data = array.data , indices=array.indices, 
+        indptr = array.indptr , shape = array.shape )
+
+def load_sparse_csr(filename):
+    """
+        Load a CSR
+            @params:   
+                filename
+    """ 
+    loader = np.load(filename)
+    return csr_matrix( ( loader['data'] , loader['indices'] , loader['indptr'] ) ,
+        shape = loader['shape'])
