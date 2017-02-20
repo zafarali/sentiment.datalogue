@@ -9,7 +9,7 @@ GLOVE_FOLDER = './glove.6B'
 
 # SKIP_WORDS = nltk.corpus.stopwords.words('english')
 CHAR_EMBEDDING = dict(zip(*(string.ascii_lowercase + ' ', range(0, 27))))
-CORPUS = pd.read_pickle('./processed/pd.DF.train_both.pickle')['text']
+# CORPUS = pd.read_pickle('./processed/pd.DF.train_both.pickle')['text']
 
 def load_glove_embeddings(folder=GLOVE_FOLDER, dimensions=100):
     """
@@ -20,7 +20,7 @@ def load_glove_embeddings(folder=GLOVE_FOLDER, dimensions=100):
     assert dimensions in [ 50, 100, 200, 300 ], 'Dimension was unrecognized.'
 
     embeddings = {}
-    with open(GLOVE_FOLDER+'/glove.6B.'+str(dimensions)+'d.txt') as f:
+    with open(folder+'/glove.6B.'+str(dimensions)+'d.txt') as f:
         for line in f:
             values = line.split()
             word = values[0]
@@ -30,14 +30,14 @@ def load_glove_embeddings(folder=GLOVE_FOLDER, dimensions=100):
     return embeddings
 
 
-def create_word_embedding(corpus=CORPUS, top_n=None):
+def create_word_embedding(corpus, top_n=None):
 	"""
 		Creates a word embedding using a corpus
 		returns a dictionary that you can look up indices of a onehot encoding
 	"""
 	word_set = Counter(text_to_word_sequence(' '.join(corpus)))
 	top_n = top_n if top_n else len(word_set)
-	return dict([(w,i) for i, (w, count) in enumerate(word_set.most_common(top_n))])
+	return dict([(w,i+1) for i, (w, count) in enumerate(word_set.most_common(top_n))])
 
 
 def sentence_to_char_one_hot(sentence):
@@ -64,10 +64,13 @@ def sentence_to_word_idx(sentence, vocabulary):
 			vocabulary: the word to idx mapping
 	"""
 	sentence = text_to_word_sequence(sentence)
-	words_encoded = np.zeros(len(sentence))
+	words_encoded = np.zeros(len(sentence), dtype=int)
 	for i, word in enumerate(sentence):
-		encoded = vocabulary.get(word, len(vocabulary) + 1 )
-		words_encoded[i] = encoded
+		encoded = vocabulary.get(word)
+		if encoded is not None:
+			words_encoded[i] = int(encoded)
+		else:
+			words_encoded[i] = len(vocabulary)
 	return words_encoded
 
 
