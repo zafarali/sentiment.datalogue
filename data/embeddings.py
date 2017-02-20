@@ -70,7 +70,7 @@ def sentence_to_word_idx(sentence, vocabulary):
 		if encoded is not None:
 			words_encoded[i] = int(encoded)
 		else:
-			words_encoded[i] = len(vocabulary)
+			words_encoded[i] = 0
 	return words_encoded
 
 

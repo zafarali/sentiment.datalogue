@@ -26,7 +26,7 @@ for dim in DIMENSIONS:
 
 		# find the largest sentence in our copus and pad to that
 		corpus_mapped = CORPUS.map(s_to_w)
-		corpus_mapped = pad_sequences(corpus_mapped, padding='post')
+		corpus_mapped = pad_sequences(corpus_mapped, padding='post', maxlen=1000)
 		max_pad = corpus_mapped.shape[1]
 
 		print('Saving Glove Dimension:' + str(glove_mapping) + ', Mapping Dimension:' +str(top_n) )
