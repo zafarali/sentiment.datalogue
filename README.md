@@ -78,3 +78,21 @@ The `./baseline_analysis.py` script generates train/test results for the differe
 1. Obtain the GloVe Embeddings for the dataset (this will probably be done when I start creating neural networks) 
 2. Try the LogisticRegression using TFIDF and a larger number of features.
 
+
+### 19/02/2017: Neural Network Models
+
+Firstly I created a script in `./data/create_embeddings.py` which will convert the sentences into word indices and a corresponding word embedding matrix. This will allow us to use word embeddings like GloVe and word2vec. It also has a character encoder to allow us to do [Text Understanding from Scratch](https://arxiv.org/pdf/1502.01710.pdf).
+
+Now that we have our baseline model, we modify the experiments slightly here. We will not use `X_test.npy` until we have decided what our model parameters will be. Then for each model we will evaluate `X_test` allowing us to get a fair comparison amongst them.
+
+![image](https://cloud.githubusercontent.com/assets/6295292/23109507/d25df13a-f6e7-11e6-967c-808b9c39b018.png)
+
+It seems from the distribution of text lengths that a text length of about 1000 should be good to capture the diversity in the data. (? need to investigate)
+
+#### Basic Model: Fully connected neural network
+
+We start with the obvious basic model: a fully connected neural network.
+
+
+
+
