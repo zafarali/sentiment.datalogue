@@ -1,0 +1,5 @@
+{
+	"hiddens": [500, 200], 
+	"dropout": 0.5, 
+	"activations": ["relu", "relu"]
+}

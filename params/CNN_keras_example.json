@@ -1,0 +1,8 @@
+{
+	"activation": "relu",
+	"filters": [250],
+	"filter_sizes": [3], 
+	"dropout": 0.5,
+	"hidden_size": 250,
+	"batch_norm": true
+}
