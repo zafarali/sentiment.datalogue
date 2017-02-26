@@ -7,7 +7,7 @@ from keras.preprocessing.text import text_to_word_sequence
 
 GLOVE_FOLDER = './glove.6B'
 
-# SKIP_WORDS = nltk.corpus.stopwords.words('english')
+SKIP_WORDS = nltk.corpus.stopwords.words('english') + ['br']
 CHAR_EMBEDDING = dict(zip(*(string.ascii_lowercase + ' ', range(0, 27))))
 # CORPUS = pd.read_pickle('./processed/pd.DF.train_both.pickle')['text']
 
@@ -30,12 +30,12 @@ def load_glove_embeddings(folder=GLOVE_FOLDER, dimensions=100):
     return embeddings
 
 
-def create_word_embedding(corpus, top_n=None):
+def create_word_embedding(corpus, top_n=None, skip_words=SKIP_WORDS):
 	"""
 		Creates a word embedding using a corpus
 		returns a dictionary that you can look up indices of a onehot encoding
 	"""
-	word_set = Counter(text_to_word_sequence(' '.join(corpus)))
+	word_set = Counter(filter(lambda w: w not in skip_words, text_to_word_sequence(' '.join(corpus))))
 	top_n = top_n if top_n else len(word_set)
 	return dict([(w,i+1) for i, (w, count) in enumerate(word_set.most_common(top_n))])
 
