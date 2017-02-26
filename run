@@ -17,7 +17,7 @@ import pandas as pd
 
 from data.utils import load_sparse_csr
 from analysis import visualization, evaluate
-from models import FullConnected
+from models import FullConnected, Convolution
 
 BATCH_SIZE = 15
 
@@ -38,6 +38,7 @@ def load_data(args):
 		Loads the dataset according to the arguments
 	"""
 	embedding = args.embedding
+	FOLDER = None
 
 	if 'tfidf' in embedding or 'counts' in embedding:
 		ngram1 = args.ngram_min
@@ -45,9 +46,12 @@ def load_data(args):
 		vocabsize = args.vocabsize
 		if vocabsize not in [5000, 10000]:
 			raise ValueError('Unknown vocab size')
+		FOLDER = './data/processed/tfidf_'+str(vocabsize)+'_'+str(ngram1)+'-'+str(ngram2)+'grams'
 
-		X = load_sparse_csr('./data/processed/tfidf_'+str(vocabsize)+'_'+str(ngram1)+'-'+str(ngram2)+'grams/X_train.csr.npz').toarray()
-		Y = np.load('./data/processed/tfidf_'+str(vocabsize)+'_'+str(ngram1)+'-'+str(ngram2)+'grams/Y_train.npy')
+		print('loading data from:' + FOLDER)
+
+		X = load_sparse_csr(FOLDER + '/X_train.csr.npz').toarray()
+		Y = np.load(FOLDER + '/Y_train.npy')
 
 
 	elif 'glove' in embedding or 'learned' in embedding:
@@ -57,21 +61,27 @@ def load_data(args):
 			raise ValueError('Unknown vocab size')
 		if embeddingsize not in [100, 50]:
 			raise ValueError('Unknown Embedding size')
+		FOLDER = './data/processed/glove'+str(embeddingsize)+'_top'+str(vocabsize)
 
-		X = np.load('./data/processed/glove'+str(embeddingsize)+'_top'+str(vocabsize)+'/X_train.npy')
-		Y = np.load('./data/processed/glove'+str(embeddingsize)+'_top'+str(vocabsize)+'/Y_train.npy')
+		print('Loading data from: ' + FOLDER)
+		X = np.load(FOLDER + '/X_train.npy')
+		Y = np.load(FOLDER + '/Y_train.npy')
 		
 	else:
 		raise IOError('Unknown embedding ' + embedding + ' supplied.')
 
-	return train_test_split(X, Y, test_size=0.1)
+	return train_test_split(X, Y, test_size=0.1), FOLDER
 
 def main(args):
 	"""
 		Loading data
 	"""
 	params = json.load(open(args.params, 'r')) # information about architecture
-	X, X_val, Y, Y_val = load_data(args) # dataset to use
+	(X, X_val, Y, Y_val), folder = load_data(args) # dataset to use
+	
+	if args.subset:
+		X = X[:args.subset, :]
+		Y = Y[:args.subset]
 
 	FEATURE_SIZE = X.shape[1]
 
@@ -79,12 +89,41 @@ def main(args):
 		Model building
 	"""
 	model = None
-
-	if args.architecture == 'FNN':
-		model = FullConnected.FC(FEATURE_SIZE, **params)
+	if args.embedding not in ['glove', 'learned']:
+		if args.architecture == 'FNN':
+			model = FullConnected.FC(FEATURE_SIZE, **params)
+		elif args.architecture == 'CNN':
+			model = Convolution.CNN(FEATURE_SIZE, **params)
+		else:
+			raise ValueError('Unsupported architecture ' + args.architecture)
 	else:
-		raise ValueError('Unsupported architecture ' + args.architecture)
+		"""
+			Glove Embeddings!
+		"""
+		embedding = None
+		
+		if args.embedding == 'learned':
+			LEN_WORD_MAP = np.max(np.vstack([X, X_val ])) #maximimum embedding size
+			embedding = layers.Embedding(LEN_WORD_MAP + 1, args.embeddingsize, input_length=FEATURE_SIZE)
 
+		elif args.embedding == 'glove':
+			embedding_matrix = np.load(folder + '/embedding_matrix.npy')
+			LEN_WORD_MAP = embedding_matrix.shape[0]
+			EMBED_SIZE = embedding_matrix.shape[1]
+
+			embedding = layers.Embedding( LEN_WORD_MAP, EMBED_SIZE, \
+				input_length=FEATURE_SIZE, weights=[embedding_matrix], \
+				trainable=args.embedding_trainable)
+
+		else:
+			raise ValueError('Unsupported embedding')
+
+		if args.architecture == 'FNN':
+			model = FullConnected.FC_embedding(FEATURE_SIZE, embedding=embedding, **params)
+		elif args.architecture == 'CNN':
+			model = Convolution.CNN_embedding(FEATURE_SIZE, embedding=embedding, **params)
+		else:
+			raise ValueError('Unsupported architecture ' + args.architecture)
 	# add output layers.
 	model.add( layers.Dense(1) )
 	model.add( layers.Activation('sigmoid') )
@@ -108,12 +147,27 @@ def main(args):
 		Evaluations
 	"""
 	print(args)
-	visualization.training_plot(history, args.outfile, metric='loss')
-	visualization.training_plot(history, args.outfile, metric='acc')
 	Y_train_preds = model.predict(X, verbose=False)
 	Y_val_preds = model.predict(X_val, verbose=False)
+
 	evaluate.evaluate(Y, Y_train_preds, title='Training')
 	evaluate.evaluate(Y_val, Y_val_preds, title='Validation')
+	f1_, _ = visualization.training_plot(history, args.outfile, metric='loss')
+	f2_, _ = visualization.training_plot(history, args.outfile, metric='acc')
+
+	fpr_train, tpr_train, auc_train = evaluate.roc_auc(Y, Y_train_preds)
+	fpr_val, tpr_val, auc_val = evaluate.roc_auc(Y_val, Y_val_preds)
+
+	f3_, _ = visualization.plot_auc([fpr_train, fpr_val], \
+									[tpr_train, tpr_val], \
+									[auc_train, auc_val], \
+									labels=['Training Set', 'Validation Set'])
+
+	plt.show()
+	f1_.savefig('loss.pdf')
+	f2_.savefig('acc.pdf')
+	f3_.savefig('auc.pdf')
+
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -164,6 +218,14 @@ if __name__ == '__main__':
 	named_args.add_argument('-nmx', '--ngram-max', metavar='|',
 						help="""Maximum ngram size""",
 						required=False, type=int, default=1)
+
+	named_args.add_argument('-et', '--embedding-trainable', metavar='|',
+						help="""Defines if the embedding is trainable""",
+						required=False, type=bool, default=True)
+
+	named_args.add_argument('-ss', '--subset', metavar='|',
+						help="""Uses a subset of data to do training""",
+						required=False, type=int, default=10000)
 
 	args = parser.parse_args()
 	main(args)
