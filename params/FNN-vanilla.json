@@ -1,5 +1,6 @@
 {
-	"hiddens": [500, 200], 
-	"dropout": 0.5, 
-	"activations": ["relu", "relu"]
+	"hiddens": [500, 500, 125], 
+	"dropout": 0.50, 
+	"activations": ["relu", "relu", "relu"],
+	"input_noise": false
 }

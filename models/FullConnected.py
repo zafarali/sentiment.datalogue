@@ -5,7 +5,7 @@ from keras.optimizers import Adam
 from keras.objectives import binary_crossentropy
 
 
-def FC(input_shape, hiddens=[500, 200], dropout=True, activations=['relu', 'relu']):
+def FC(input_shape, input_noise=False, hiddens=[500, 200], dropout=True, activations=['relu', 'relu']):
 	"""
 		A basic fully connected model without an embedding layer
 	"""
@@ -14,6 +14,9 @@ def FC(input_shape, hiddens=[500, 200], dropout=True, activations=['relu', 'relu
 
 	model = Sequential()
 	model.add( layers.InputLayer(input_shape = (input_shape,)) )
+
+	if input_noise:
+		model.add( layers.noise.GaussianNoise(input_noise) )
 
 	return basic_FNN(model, hiddens=hiddens, dropout=dropout, activations=activations)
 

@@ -6,7 +6,7 @@ import json
 
 from sklearn.cross_validation import train_test_split
 from keras import layers
-from keras.callbacks import History
+from keras.callbacks import History, EarlyStopping
 from keras import optimizers
 from keras.objectives import binary_crossentropy
 
@@ -17,9 +17,9 @@ import pandas as pd
 
 from data.utils import load_sparse_csr
 from analysis import visualization, evaluate
-from models import FullConnected, Convolution
+from models import FullConnected, Convolution, TimeBased
 
-BATCH_SIZE = 15
+BATCH_SIZE = 32
 
 def parse_optimizer(args):
 	"""
@@ -79,6 +79,16 @@ def main(args):
 	params = json.load(open(args.params, 'r')) # information about architecture
 	(X, X_val, Y, Y_val), folder = load_data(args) # dataset to use
 	
+	if args.use_test:
+		X = np.vstack([X, X_val])
+		Y = np.hstack([Y, Y_val])
+		try:
+			X_val = np.load(folder + 'X_test.npy')
+		except Exception as e:
+			X_val = load_sparse_csr( folder + 'X_test.csr.npz').toarray()
+			
+		Y_val = np.load(folder + 'Y_test.npy')
+
 	if args.subset:
 		X = X[:args.subset, :]
 		Y = Y[:args.subset]
@@ -122,6 +132,9 @@ def main(args):
 			model = FullConnected.FC_embedding(FEATURE_SIZE, embedding=embedding, **params)
 		elif args.architecture == 'CNN':
 			model = Convolution.CNN_embedding(FEATURE_SIZE, embedding=embedding, **params)
+		elif args.architecture == 'LSTM':
+			model = TimeBased.LSTM_embedding(FEATURE_SIZE, embedding=embedding, **params)
+
 		else:
 			raise ValueError('Unsupported architecture ' + args.architecture)
 	# add output layers.
@@ -131,14 +144,16 @@ def main(args):
 	optimizer = parse_optimizer(args)
 
 	model.compile(optimizer=optimizer, loss=binary_crossentropy, metrics=['accuracy'])
-
+	model.summary()
 	"""
 		Training
 	"""
 	history = History()
 	try:
 		model.fit(X, Y, batch_size=BATCH_SIZE, shuffle=True, \
-			validation_split=0.1, verbose=1, nb_epoch=args.epochs, callbacks=[history])
+			validation_split=0.1, verbose=1, nb_epoch=args.epochs, \
+			callbacks=[ history, \
+			EarlyStopping(min_delta=0.005, patience=2, verbose=True) ])
 
 	except KeyboardInterrupt as e:
 		print('Training Stopped Early')
@@ -147,13 +162,18 @@ def main(args):
 		Evaluations
 	"""
 	print(args)
+	print(params)
 	Y_train_preds = model.predict(X, verbose=False)
 	Y_val_preds = model.predict(X_val, verbose=False)
+
+	PREFIX_FILENAME = args.outfile + args.embedding + args.architecture
 
 	evaluate.evaluate(Y, Y_train_preds, title='Training')
 	evaluate.evaluate(Y_val, Y_val_preds, title='Validation')
 	f1_, _ = visualization.training_plot(history, args.outfile, metric='loss')
 	f2_, _ = visualization.training_plot(history, args.outfile, metric='acc')
+	
+	json.dump(history, open(PREFIX_FILENAME + '_history.json', 'w'))
 
 	fpr_train, tpr_train, auc_train = evaluate.roc_auc(Y, Y_train_preds)
 	fpr_val, tpr_val, auc_val = evaluate.roc_auc(Y_val, Y_val_preds)
@@ -163,11 +183,11 @@ def main(args):
 									[auc_train, auc_val], \
 									labels=['Training Set', 'Validation Set'])
 
-	plt.show()
-	f1_.savefig('loss.pdf')
-	f2_.savefig('acc.pdf')
-	f3_.savefig('auc.pdf')
-
+	# plt.show()
+	f1_.savefig(PREFIX_FILENAME + '_loss.pdf')
+	f2_.savefig(PREFIX_FILENAME + '_acc.pdf')
+	f3_.savefig(PREFIX_FILENAME + '_auc.pdf')
+	model.save(PREFIX_FILENAME + '_model.hdf5')
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -200,14 +220,16 @@ if __name__ == '__main__':
 
 	named_args.add_argument('-lr', '--learningrate', metavar='|',
 						help='Optimizer to use',
-						required=False, default=0.01)
-
+						required=False, default=0.01, type=float)
+	named_args.add_argument('-ut', '--use-test', metavar='|',
+						help='Use the test set to evaluate the model',
+						required=False, default=False, type=bool)
 	named_args = parser.add_argument_group('embedding arguments')
 	named_args.add_argument('-v', '--vocabsize', metavar='|',
 						help="""Number of words in vocabulary""",
 						required=False, type=int, default=5000)
 
-	named_args.add_argument('-s', '--embeddingsize', metavar='|',
+	named_args.add_argument('-es', '--embeddingsize', metavar='|',
 						help="""Size of embedding dimension""",
 						required=False, type=int, default=50)
 
@@ -225,7 +247,7 @@ if __name__ == '__main__':
 
 	named_args.add_argument('-ss', '--subset', metavar='|',
 						help="""Uses a subset of data to do training""",
-						required=False, type=int, default=10000)
+						required=False, type=int, default=20000)
 
 	args = parser.parse_args()
 	main(args)

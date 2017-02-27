@@ -4,7 +4,6 @@ from keras.models import Model, Sequential
 from keras.optimizers import Adam
 from keras.objectives import binary_crossentropy
 
-
 def CNN(input_shape, filters=[64, 64], filter_sizes=[5, 5], dropout=True, batch_norm=True, maxpool_size=5, activation='relu'):
 	"""
 		Basic convoultion neural network without an embedding layer
@@ -22,7 +21,7 @@ def CNN(input_shape, filters=[64, 64], filter_sizes=[5, 5], dropout=True, batch_
 	return model
 
 
-def CNN_embedding(input_length, hidden_size=50, embedding=False, filters=[250], filter_sizes=[3], dropout=True, batch_norm=True, activation='relu'):
+def CNN_embedding(input_length, hiddens=[50], embedding=False, filters=[250], filter_sizes=[3], dropout=True, batch_norm=True, activation='relu', maxpool_size=None):
 	"""
 		Example script from: https://github.com/fchollet/keras/blob/master/examples/imdb_cnn.py
 	"""
@@ -37,8 +36,9 @@ def CNN_embedding(input_length, hidden_size=50, embedding=False, filters=[250], 
 
 	model.add( layers.GlobalMaxPooling1D() )
 	model.add( layers.Dropout(dropout) )
-	model.add( layers.Dense(hidden_size) )
-	model.add( layers.Activation(activation) )
+
+	if hiddens and len(hiddens) > 0:
+		model = basic_FNN(model, hiddens=hiddens, activations=['relu']*len(hiddens), dropout=dropout)
 	
 
 	return model
@@ -53,8 +53,20 @@ def basic_CNN(model, filters=[250], filter_sizes=[3], dropout=True, maxpool=Fals
 		model.add( layers.Activation(activation) )
 		if dropout:
 			model.add( layers.Dropout(dropout) )
-		model.add( layers.Activation(activation) )
 		if batch_norm:
 			model.add( layers.BatchNormalization() )
+
+	return model
+
+
+def basic_FNN(model, hiddens=[500, 200], dropout=True, activations=['relu', 'relu']):	
+	"""
+		Helper function to build layers of fully connected networks
+	"""
+	for h, a in zip(hiddens, activations):
+		model.add( layers.Dense(h) )
+		if dropout:
+			model.add( layers.Dropout(dropout) )
+		model.add( layers.Activation(a) )
 
 	return model
