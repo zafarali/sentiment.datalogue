@@ -32,7 +32,7 @@ def CNN_embedding(input_length, hiddens=[50], embedding=False, filters=[250], fi
 	model.add( layers.InputLayer( input_shape = (input_length, ) ) )
 	model.add( embedding )
 
-	model = basic_CNN(model, filters=filters, filter_sizes=filter_sizes, dropout=dropout, batch_norm=batch_norm, activation=activation)
+	model = basic_CNN(model, noactivate=True, filters=filters, filter_sizes=filter_sizes, dropout=dropout, batch_norm=batch_norm, activation=activation)
 
 	model.add( layers.GlobalMaxPooling1D() )
 	model.add( layers.Dropout(dropout) )
@@ -44,13 +44,14 @@ def CNN_embedding(input_length, hiddens=[50], embedding=False, filters=[250], fi
 	return model
 
 
-def basic_CNN(model, filters=[250], filter_sizes=[3], dropout=True, maxpool=False, batch_norm=True, activation='relu'):
+def basic_CNN(model, noactivate=False, filters=[250], filter_sizes=[3], dropout=True, maxpool=False, batch_norm=True, activation='relu'):
 	"""
 		Utility function to add multiple stacks of CNNs
 	"""
 	for n_filters, filter_size in zip(filters, filter_sizes):
 		model.add( layers.Conv1D(n_filters, filter_size, border_mode='valid') )
-		model.add( layers.Activation(activation) )
+		if not noactivate:
+			model.add( layers.Activation(activation) )
 		if dropout:
 			model.add( layers.Dropout(dropout) )
 		if batch_norm:
