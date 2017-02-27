@@ -87,12 +87,92 @@ Now that we have our baseline model, we modify the experiments slightly here. We
 
 ![image](https://cloud.githubusercontent.com/assets/6295292/23109507/d25df13a-f6e7-11e6-967c-808b9c39b018.png)
 
-It seems from the distribution of text lengths that a text length of about 1000 should be good to capture the diversity in the data. (? need to investigate)
+It seems from the distribution of text lengths that a text length of about 1000 should be good to capture the diversity in the data. 
+
+*Edit*: Turns out that sequence length here just corresponds to the length of the characters. Considering that the average english word contains 5 characters, I predict that 800/5 = 160 is the average length of the review in words. Thus in my future experiments I capped to 300 words which would ensure that we capture as much information as necessary.
+
+### 25/02/2017
 
 #### Basic Model: Fully connected neural network
 
-We start with the obvious basic model: a fully connected neural network.
+So I spent the day writing a `run` script as well visualizations for the metrics that the challenge requires: accuracy, cost and auc curves. Finally got embeddings to work!
+
+I proceeded to do the following experiments where I vary only one of the "hyperparameters" at a time:
+
+1. Compare "relu" vs "sigmoid"
+2. Comapre dropouts of `[0, 0.25, 0.5, 0.75]`
+3. batch size of 15 vs 32
+4. hidden configurations `[500, 250, 125]`, `[500, 250]`, `[500, 500, 125]`.
+
+Note that I did not perform k-fold cross validation to quantitatively compare each of these due to the computational overload and tight time-frame of the project. 
+
+*Findings:* I found that `relu`'s are a brilliant way to train networks quickly compared to the good ol' `sigmoid`. Also noise doesn't help train the network with tfidf. This could be because the tfidf values are already quite small and noising them will result in very blurry data that doesn't really make sense. A larger batch size of 32 outperformed a batch size of 15. Dropout was necessary to prevent overfitting too quickly.
+
+Turns out that fully connected neural network is able to use the tfidf preprocess and do a really good job when compared to logistic regression on the dataset with 1-grams and a vocabulary size of 10000. The network parameters are:
+
+```
+{
+	"hiddens": [500, 500, 125], 
+	"dropout": 0.50, 
+	"activations": ["relu", "relu", "relu"],
+	"input_noise": false
+}
+```
+
+This served as a good first glimpse into how well the model can perform and what our benchmarks to beat are. In particular we seem to have found good batch sizes and good activation functions.
+
+### 26/02/2017
+
+#### Convolution Neural Networks
+
+Using an embedding layer to extract features from a sequence and padding to 300 words. Based on the discussion in [Kim, Yoon. "Convolutional neural networks for sentence classification." arXiv preprint arXiv:1408.5882 (2014).](https://arxiv.org/abs/1408.5882). To create the dataset, I converted sequences of word vectors which are present in the location of words which represent the 5000 most common words. I also used the Glove embedding size of 50. I experimented to look for different number of filters and filter sizes that was able to learn fastest. I found that the following parameters performed the best:
+
+```
+{
+	"activation": "relu",
+	"filters": [250],
+	"filter_sizes": [3], 
+	"dropout": false,
+	"hiddens": [],
+	"batch_norm": false,
+	"maxpool_size":false
+}
+```
+
+Unsurprisingly these are the same parameters used in the out of the box [CNN example from keras](https://github.com/fchollet/keras/blob/master/examples/imdb_cnn.py). I also compared using Glove vs Learned embeddings. When comparing GloVe vs Learned Embeddings:
+
+| | GloVe | Learned |
+|----|----|----|
+| Accuracy | 0.854 | 0.831 |
+| AUC-ROC | 0.932 | 0.91 |
+
+It seems that Glove Embeddings (with fine-turning) to slightly better and converge faster (2 epochs vs 5 epochs). 
+
+#### LSTMs
+
+I tried LSTMs with output sizes of 50 (due to computational constraints on my side). I set the dropout for the hidden gates to be `0.2` as in the keras implementation. Here the LSTM learns the sequential dependencies between the words
+
+```
+{
+	"dropW":0.2,
+	"dropU":0.2,
+	"n_dims":50
+}
+```
+
+#### BiLSMs
+
+I used the same configuration as above for LSTMs for a bidirectional LSTM which incorporates information from the other direction of the sequence. This however, doesn't seem to affect how quickly the model learns but the model is (slightly) more accurate:
+
+![image](https://cloud.githubusercontent.com/assets/6295292/23369931/f30ba130-fce0-11e6-9980-c5629400025f.png)
+![image](https://cloud.githubusercontent.com/assets/6295292/23370096/95774b5e-fce1-11e6-9066-62b7fb4e81ce.png)
+
+It also has a slightly better ROC curve:
+![image](https://cloud.githubusercontent.com/assets/6295292/23371743/21cb181a-fce7-11e6-9d8a-3902e172af3f.png)
+
+
+#### CNN-LSTMS
 
 
 
-
+A nice extension to look at in the future is [Wang, Jin, et al. "Dimensional sentiment analysis using a regional cnn-lstm model." The 54th Annual Meeting of the Association for Computational Linguistics. Vol. 225. 2016.](http://www.aclweb.org/anthology/P/P16/P16-2.pdf#page=259)
