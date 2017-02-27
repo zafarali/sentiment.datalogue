@@ -66,7 +66,15 @@ def load_data(args):
 		print('Loading data from: ' + FOLDER)
 		X = np.load(FOLDER + '/X_train.npy')
 		Y = np.load(FOLDER + '/Y_train.npy')
-		
+	elif 'discwords' in embedding:
+		embeddingsize = args.embeddingsize
+		if embeddingsize not in [100, 50]:
+			raise ValueError('Unknown Embedding size')
+		FOLDER = './data/processed/discwords/glove'+str(embeddingsize)
+
+		print('Loading data from: ' + FOLDER)
+		X = np.load(FOLDER + '/X_train.npy')
+		Y = np.load(FOLDER + '/Y_train.npy')
 	else:
 		raise IOError('Unknown embedding ' + embedding + ' supplied.')
 
@@ -83,11 +91,11 @@ def main(args):
 		X = np.vstack([X, X_val])
 		Y = np.hstack([Y, Y_val])
 		try:
-			X_val = np.load(folder + 'X_test.npy')
+			X_val = np.load(folder + '/X_test.npy')
 		except Exception as e:
-			X_val = load_sparse_csr( folder + 'X_test.csr.npz').toarray()
+			X_val = load_sparse_csr( folder + '/X_test.csr.npz').toarray()
 			
-		Y_val = np.load(folder + 'Y_test.npy')
+		Y_val = np.load(folder + '/Y_test.npy')
 
 	if args.subset:
 		X = X[:args.subset, :]
@@ -99,7 +107,7 @@ def main(args):
 		Model building
 	"""
 	model = None
-	if args.embedding not in ['glove', 'learned']:
+	if args.embedding not in ['glove', 'learned', 'discwords']:
 		if args.architecture == 'FNN':
 			model = FullConnected.FC(FEATURE_SIZE, **params)
 		elif args.architecture == 'CNN':
@@ -116,7 +124,7 @@ def main(args):
 			LEN_WORD_MAP = np.max(np.vstack([X, X_val ])) #maximimum embedding size
 			embedding = layers.Embedding(LEN_WORD_MAP + 1, args.embeddingsize, input_length=FEATURE_SIZE)
 
-		elif args.embedding == 'glove':
+		elif args.embedding == 'glove' or args.embedding == 'discwords':
 			embedding_matrix = np.load(folder + '/embedding_matrix.npy')
 			LEN_WORD_MAP = embedding_matrix.shape[0]
 			EMBED_SIZE = embedding_matrix.shape[1]
@@ -134,7 +142,10 @@ def main(args):
 			model = Convolution.CNN_embedding(FEATURE_SIZE, embedding=embedding, **params)
 		elif args.architecture == 'LSTM':
 			model = TimeBased.LSTM_embedding(FEATURE_SIZE, embedding=embedding, **params)
-
+		elif args.architecture == 'LSTMCNN':
+			model = TimeBased.LSTMCNN_embedding(FEATURE_SIZE, embedding=embedding, **params)
+		elif args.architecture == 'biLSTM':
+			model = TimeBased.biLSTM_embedding(FEATURE_SIZE, embedding=embedding, **params)	
 		else:
 			raise ValueError('Unsupported architecture ' + args.architecture)
 	# add output layers.
@@ -153,7 +164,7 @@ def main(args):
 		model.fit(X, Y, batch_size=BATCH_SIZE, shuffle=True, \
 			validation_split=0.1, verbose=1, nb_epoch=args.epochs, \
 			callbacks=[ history, \
-			EarlyStopping(min_delta=0.005, patience=2, verbose=True) ])
+			EarlyStopping(min_delta=0.0005, patience=2, verbose=True)])
 
 	except KeyboardInterrupt as e:
 		print('Training Stopped Early')
@@ -173,7 +184,7 @@ def main(args):
 	f1_, _ = visualization.training_plot(history, args.outfile, metric='loss')
 	f2_, _ = visualization.training_plot(history, args.outfile, metric='acc')
 	
-	json.dump(history, open(PREFIX_FILENAME + '_history.json', 'w'))
+	json.dump(history.history, open(PREFIX_FILENAME + '_history.json', 'w'))
 
 	fpr_train, tpr_train, auc_train = evaluate.roc_auc(Y, Y_train_preds)
 	fpr_val, tpr_val, auc_val = evaluate.roc_auc(Y_val, Y_val_preds)
@@ -188,6 +199,15 @@ def main(args):
 	f2_.savefig(PREFIX_FILENAME + '_acc.pdf')
 	f3_.savefig(PREFIX_FILENAME + '_auc.pdf')
 	model.save(PREFIX_FILENAME + '_model.hdf5')
+
+	if args.use_test:
+		o = {
+			'fpr': fpr_val.tolist(),
+			'tpr': tpr_val.tolist(),
+			'auc': auc_val.tolist()
+		}
+
+		json.dump(o, open(PREFIX_FILENAME+'.auc.json', 'w'))
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
@@ -250,4 +270,6 @@ if __name__ == '__main__':
 						required=False, type=int, default=20000)
 
 	args = parser.parse_args()
+	if args.use_test:
+		print('Testing mode')
 	main(args)
