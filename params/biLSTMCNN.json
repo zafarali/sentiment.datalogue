@@ -1,0 +1,11 @@
+{
+	"n_filters": 70,
+	"filter_size": 2,
+	"pool_length": 5,
+	"dropout": 0.2,
+	"dropW": 0.2,
+	"dropU": 0.2,
+	"lstm_dims": 50,
+	"bidirectional": true,
+	"hiddens":[]
+}

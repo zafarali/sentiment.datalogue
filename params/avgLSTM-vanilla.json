@@ -1,0 +1,5 @@
+{
+	"dropW": 0.2,
+	"dropU": 0.2,
+	"lstm_dims": 50
+}
