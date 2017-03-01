@@ -226,6 +226,7 @@ Now that we have identified all the "good" parameters, our empirical observation
 
 #### Graphs!
 
+![image](https://cloud.githubusercontent.com/assets/6295292/23449818/07b04a46-fe26-11e6-8496-f0294820415a.png)
 
 
 
