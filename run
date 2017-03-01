@@ -151,6 +151,9 @@ def main(args):
 			model = TimeBased.LSTM_embedding(FEATURE_SIZE, embedding=embedding, **params)
 		elif args.architecture == 'LSTMCNN':
 			model = TimeBased.LSTMCNN_embedding(FEATURE_SIZE, embedding=embedding, **params)
+		elif args.architecture == 'biLSTMCNN':
+			## compatability for saving results only...
+			model = TimeBased.LSTMCNN_embedding(FEATURE_SIZE, embedding=embedding, **params)
 		elif args.architecture == 'biLSTM':
 			model = TimeBased.biLSTM_embedding(FEATURE_SIZE, embedding=embedding, **params)	
 		else:

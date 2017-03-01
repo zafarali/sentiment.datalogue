@@ -4,6 +4,8 @@ Motivation: This Sentiment analysis challenge was for Datalogue recruiting
 
 Goal: Write a neural network that can classify sentiments using a corpus in `./data/`
 
+HOWTO: Details on how to deploy these models and run them see [INSTALL.md](https://github.com/zafarali/sentiment.datalogue/blob/master/INSTALL.md).
+
 You can track the progress and completed tasks of this project here: [Progress](https://github.com/zafarali/sentiment.datalogue/projects/1)
 
 I will be keeping track of my explorations and observations in this README for anyone else who wants to explore.
@@ -160,7 +162,7 @@ I tried LSTMs with output sizes of 50 (due to computational constraints on my si
 }
 ```
 
-#### BiLSMs
+#### BiLSTMs
 
 I used the same configuration as above for LSTMs for a bidirectional LSTM which incorporates information from the other direction of the sequence. This however, doesn't seem to affect how quickly the model learns but the model is (slightly) more accurate:
 
@@ -170,9 +172,61 @@ I used the same configuration as above for LSTMs for a bidirectional LSTM which 
 It also has a slightly better ROC curve:
 ![image](https://cloud.githubusercontent.com/assets/6295292/23371743/21cb181a-fce7-11e6-9d8a-3902e172af3f.png)
 
+| | Accuracy | AUC-ROC |
+|----|----|----|
+| LSTM - Glove | 0.850 | 0.922 |
+| LSTM - Learned | 0.849 | 0.920 |
+| BiLSTM - Glove | 0.859| 0.930 |
+| BiLSTM - Learned | 0.852 | 0.923 |
+
+It also seems using GloVe embeddings are slightly better than using learned embeddings. However, I believe that learning custom *sentiment embeddings* like in [Tang, Duyu, et al. "Sentiment embeddings with applications to sentiment analysis." IEEE Transactions on Knowledge and Data Engineering 28.2 (2016): 496-509.](http://ieeexplore.ieee.org.proxy3.library.mcgill.ca/stamp/stamp.jsp?tp=&arnumber=7296633) might be an even better option.
+
+Given that both LSTMs and CNNs reach an almost equivalent accuracy, maybe combining them can do even better?
 
 #### CNN-LSTMS
 
+Inspired by [Wang, Jin, et al. "Dimensional sentiment analysis using a regional cnn-lstm model." The 54th Annual Meeting of the Association for Computational Linguistics. Vol. 225. 2016.](http://www.aclweb.org/anthology/P/P16/P16-2.pdf#page=259) where they break up word sequences into regions, apply convolutions and then use an LSTM layer to integrate the final information to feed into a classifier, I used `Convolution1D` or `LocallyConnected1D` to extract local information (i.e bigrams, short sequences of words) to feed into the BiLSTM layer from above to see if we can integrate all this information to get a better predictive model.
+
+The final model combined the CNN base model combined with an LSTM layer on top:
+```
+Embedding
+CONV1D
+RELU
+AVGPOOL
+LSTM/BILSTM
+DENSE
+```
+
+<!-- Considering that fine-tuning GloVe embeddings seem to create better performing models, I used that for training.  -->
+I found that I had to reduce the number of filters in the convolution layer to ensure that the model began learning. However, I found that increasing the filter size did not make learning better. I also found that adding `Dense` layers on top of the architecture did not result in better performance, and in fact made it slightly worse.
+
+I found the following parameters to perform the best:
+
+```
+{
+	"n_filters": 70,
+	"filter_size": 2,
+	"pool_length": 5,
+	"dropout": 0.2,
+	"dropW": 0.2,
+	"dropU": 0.2,
+	"lstm_dims": 50,
+	"bidirectional": true,
+	"hiddens":[]
+}
+```
+
+A regular LSTM model performed only slightly worse. 
 
 
-A nice extension to look at in the future is [Wang, Jin, et al. "Dimensional sentiment analysis using a regional cnn-lstm model." The 54th Annual Meeting of the Association for Computational Linguistics. Vol. 225. 2016.](http://www.aclweb.org/anthology/P/P16/P16-2.pdf#page=259)
+#### 28/02/2017
+
+Now that we have identified all the "good" parameters, our empirical observations need to be made quantitative by repeating the experiments and evaluating on the test dataset. To do this I have implemented in `run` the `--use-test true` flag that can be used to do this which saves the results into an `results.csv` file. To save time, I take an average of the accuracy and AUC from 3-4 repeats. The ROC-AUC and loss/accuracy curves are from one run only.
+
+
+#### Graphs!
+
+
+
+
+

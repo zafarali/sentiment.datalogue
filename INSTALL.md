@@ -147,7 +147,7 @@ Note that there is no special `biLSTMCNN` option, it must be specified in the pa
 
 ```
 ./run -n 10 -e learned -a LSTMCNN -o './CNNbiLSTM' -p './params/biLSTMCNN-vanilla.json' -v 5000 -es 50 --use-test true
-
+```
 
 ## Logisitic Regression
 To obtain results for the logistic regression model with tfidf model run:
