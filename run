@@ -3,6 +3,7 @@
 import sys, os
 import argparse
 import json
+import csv
 
 from sklearn.cross_validation import train_test_split
 from keras import layers
@@ -20,6 +21,12 @@ from analysis import visualization, evaluate
 from models import FullConnected, Convolution, TimeBased
 
 BATCH_SIZE = 32
+
+def log_result(train_accuracy, test_accuracy, auc, tpr, fpr, args):
+	data_point = [args.architecture, args.params, args.embedding, train_accuracy, test_accuracy, auc, tpr, fpr]
+	with open('./results.csv', 'a') as f:
+		writer = csv.writer(f)
+		writer.writerow(data_point)
 
 def parse_optimizer(args):
 	"""
@@ -179,8 +186,8 @@ def main(args):
 
 	PREFIX_FILENAME = args.outfile + args.embedding + args.architecture
 
-	evaluate.evaluate(Y, Y_train_preds, title='Training')
-	evaluate.evaluate(Y_val, Y_val_preds, title='Validation')
+	acc_train = evaluate.evaluate(Y, Y_train_preds, title='Training')
+	acc_val = evaluate.evaluate(Y_val, Y_val_preds, title='Validation')
 	f1_, _ = visualization.training_plot(history, args.outfile, metric='loss')
 	f2_, _ = visualization.training_plot(history, args.outfile, metric='acc')
 	
@@ -209,6 +216,8 @@ def main(args):
 
 		json.dump(o, open(PREFIX_FILENAME+'.auc.json', 'w'))
 
+		log_result(acc_train, acc_val, auc_val.tolist(), tpr_val.tolist(), fpr_val.tolist(), args)
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	named_args = parser.add_argument_group('named arguments')
@@ -220,7 +229,7 @@ if __name__ == '__main__':
 
 	named_args.add_argument('-o', '--outfile', metavar='|',
 						help='File to store trained model',
-						required=False)
+						required=False, type=str, default='./training_results')
 
 	named_args.add_argument('-n', '--epochs', metavar='|',
 						help='Number of epochs to train network',

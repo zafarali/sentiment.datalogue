@@ -53,3 +53,5 @@ def evaluate(true, predictions, title='Training'):
 	print(confusion(true, predictions))
 	print( title + 'AUC ROC: ' + str(roc_auc(true, predictions)[-1]))
 
+	return accuracy(true, predictions)
+
