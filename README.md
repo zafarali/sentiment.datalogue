@@ -61,11 +61,84 @@ There are two things to take away from this:
 1. Our wordly misconceptions about which words would be used most often is wrong.
 2. Using common words / frequencies do not make for good features.
 
-#### Future: Dunnings Loglikelihood
+### Future: Dunnings Loglikelihood
 
 In a [previous competition (twitfem)](https://github.com/zafarali/twitfem) we had used the Dunnings Loglikelihood to tell us which words appeared in each corpus not by chance. This might be a useful metric here to remove non-predictive words. Let us explore it. I looked into the literature to try to understand further what this"likelihood" test was doing. 
 
 Dunning, Ted. ["Accurate methods for the statistics of surprise and coincidence."](http://www.aclweb.org/website/old_anthology/J/J93/J93-1003.pdf) Computational linguistics 19.1 (1993): 61-74.
+
+Edit: I implemented this and found the following words that were least likely to be associated by chance to the negative category:
+```
+	LogLikely	words
+-3590.882468 bad
+-2163.111410 worst
+-1336.024486 waste
+-1322.957133 awful
+-1101.811732 no
+-935.630070	movie
+-912.885152	terrible
+-887.657903	stupid
+-821.993811	worse
+-810.817937	boring
+-769.399390	just
+-761.543590	horrible
+-731.771407	nothing
+-658.998677	poor
+-658.316995	even
+-624.174762	crap
+-619.350322	minutes
+-598.854835	this
+-545.642181	poorly
+-536.803704	why
+-535.424184	supposed
+-509.507286	was
+-497.424991	plot
+-496.746328	lame
+-451.796238 don't
+-447.686228 acting
+-443.666022 script
+-443.059781	ridiculous
+-430.741232	pointless
+-423.837657	or
+```
+
+Interesting to note that these were the words people often associate with negative aspects of the movie.
+
+And least likely to be associated with the positive category by chance (in descending order)
+```
+256.491409	today
+259.878453	world
+268.476564	heart
+270.074215	young
+287.561512	her
+303.014052	in
+303.065487	performance
+308.709405	highly
+322.170706	is
+329.611806	both
+339.752031	fantastic
+347.166342	superb
+364.052358	brilliant
+369.351990  also
+388.814374  well
+392.041343  loved
+392.371086  favorite
+403.134484  very
+427.654229  life
+445.376411  beautiful
+497.343519  amazing
+500.595005  perfect
+559.980903  as
+693.615250  love
+735.457176  best
+744.953768  wonderful
+765.653488  his
+836.666214  excellent
+1092.081481  and
+1533.854321  great
+```
+
+There are obviously some stop words here but these are also super filters for each category! These are usually words people use when describing a movie with a positive tone! A surprising fact is that people who talk about the movie in a negative tone tend to pick up more concrete things like `plot, acting, script` which can be objectively bad. Whereas, the positive reviews tend to be talking about `performance, favorite, beautiful` which are subjective!
 
 ### 16/02/2017: (preliminary) Feature Extraction
 
